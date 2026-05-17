@@ -35,7 +35,10 @@ import {
   LayoutDashboard,
   Target,
   Radar as RadarIcon,
-  Scaling
+  Scaling,
+  UserPlus,
+  Mail,
+  Lock
 } from 'lucide-react';
 import { 
   XAxis, 
@@ -98,6 +101,10 @@ export default function Dashboard() {
   const [logs, setLogs] = useState([]);
   const [checking, setChecking] = useState(false);
   const [highPriority, setHighPriority] = useState([]);
+  const [newUser, setNewUser] = useState({ email: '', password: '', role: 'Pricing Analyst' });
+  const [userMsg, setUserMsg] = useState('');
+  const [userErr, setUserErr] = useState('');
+  const [creatingUser, setCreatingUser] = useState(false);
   
   // High-Density Confidence Data
   const confidenceMetrics = [
@@ -189,6 +196,22 @@ export default function Dashboard() {
     }
   };
 
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    setUserMsg('');
+    setUserErr('');
+    setCreatingUser(true);
+    try {
+      const res = await apiInternal.post('/auth/create-user', newUser);
+      setUserMsg(res.data.message);
+      setNewUser({ email: '', password: '', role: 'Pricing Analyst' });
+      setCreatingUser(false);
+    } catch (err) {
+      setUserErr(err.response?.data?.message || 'Error creating user');
+      setCreatingUser(false);
+    }
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -206,8 +229,13 @@ export default function Dashboard() {
             <LayoutDashboard className="w-5 h-5" />
             Analyze It Intelligence Base
           </div>
-          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-none">
-            {getGreeting()}, <span className="text-slate-400 font-medium">{profile?.organization?.name || 'Partner'}</span>
+          <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight leading-none flex items-center gap-4">
+            <span>{getGreeting()}, <span className="text-slate-400 font-medium">{profile?.organization?.name || 'Partner'}</span></span>
+            {profile?.user?.role && (
+              <span className="text-xs font-black uppercase tracking-widest px-3.5 py-1.5 rounded-full bg-pink-50 border border-pink-200 text-pink-600 shadow-sm align-middle">
+                {profile.user.role}
+              </span>
+            )}
           </h1>
           <p className="text-sm font-medium text-slate-500 max-w-lg">
             Personalized dashboard synthesizing <span className="text-pink-600 font-black">22 active nodes</span> with optimized neural confidence.
@@ -329,6 +357,73 @@ export default function Dashboard() {
                 </div>
              </div>
           </div>
+
+          {/* Admin User Management Suite */}
+          {profile?.user?.role === 'Admin' && (
+            <div className="glass-card p-10 border-slate-100 bg-white shadow-xl relative overflow-hidden">
+              <div className="absolute -top-24 -right-24 w-48 h-48 bg-pink-500/10 rounded-full blur-3xl" />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/20 text-white">
+                  <UserPlus className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-slate-900 tracking-tight">Organization User Management</h3>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Create Pricing Analyst credentials for your organization</p>
+                </div>
+              </div>
+
+              {userMsg && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  {userMsg}
+                </motion.div>
+              )}
+
+              {userErr && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-700 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  {userErr}
+                </motion.div>
+              )}
+
+              <form onSubmit={handleCreateUser} className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                <div className="group">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1.5 block">Analyst Email</label>
+                  <div className="relative flex items-center">
+                    <Mail className="absolute left-4 w-4 h-4 text-slate-400 group-focus-within:text-pink-500 transition-colors" />
+                    <input 
+                      type="email" 
+                      placeholder="analyst@organization.com" 
+                      required 
+                      value={newUser.email}
+                      onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                      className="input-field pl-11 h-12 text-xs border-slate-200 focus:border-pink-500/50 w-full" 
+                    />
+                  </div>
+                </div>
+
+                <div className="group">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1 mb-1.5 block">Temporary Password</label>
+                  <div className="relative flex items-center">
+                    <Lock className="absolute left-4 w-4 h-4 text-slate-400 group-focus-within:text-pink-500 transition-colors" />
+                    <input 
+                      type="password" 
+                      placeholder="••••••••" 
+                      required 
+                      value={newUser.password}
+                      onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                      className="input-field pl-11 h-12 text-xs border-slate-200 focus:border-pink-500/50 w-full" 
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" disabled={creatingUser} className="btn-primary h-12 justify-center text-xs shadow-lg shadow-pink-500/20 active:scale-95 disabled:opacity-50 w-full">
+                  {creatingUser ? 'Creating...' : 'Create Credentials'}
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </button>
+              </form>
+            </div>
+          )}
         </div>
 
         {/* Intelligence Side Sidebar */}

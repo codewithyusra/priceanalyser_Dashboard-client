@@ -19,14 +19,19 @@ export default function Catalog() {
   const [searchTerm, setSearchTerm] = useState('');
   const [processingId, setProcessingId] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [profile, setProfile] = useState(null);
   const [newProduct, setNewProduct] = useState({
     sku: '', name: '', category: 'Electronics', currentPrice: '', cogs: '', stockLevel: ''
   });
 
   const fetchProducts = useCallback(async () => {
     try {
-      const { data } = await api.get('/products');
-      setProducts(data);
+      const [productsRes, profileRes] = await Promise.all([
+        api.get('/products'),
+        api.get('/auth/me')
+      ]);
+      setProducts(productsRes.data);
+      setProfile(profileRes.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -93,20 +98,22 @@ export default function Catalog() {
               <h1 className="text-2xl font-bold text-slate-900">Inventory Assets</h1>
               <p className="text-slate-500 mt-1 text-sm font-medium">Manage SKUs and trigger automated strategy re-evaluations.</p>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button 
-                onClick={() => setShowAddModal(true)}
-                className="btn-primary"
-              >
-                <Plus className="w-4 h-4" /> Add Asset
-              </button>
-              <button 
-                onClick={handleSeed}
-                className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-semibold"
-              >
-                <Database className="w-4 h-4" /> Seed Core
-              </button>
-            </div>
+            {profile?.user?.role === 'Admin' && (
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button 
+                  onClick={() => setShowAddModal(true)}
+                  className="btn-primary"
+                >
+                  <Plus className="w-4 h-4" /> Add Asset
+                </button>
+                <button 
+                  onClick={handleSeed}
+                  className="px-4 py-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2 text-sm font-semibold"
+                >
+                  <Database className="w-4 h-4" /> Seed Core
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center">
